@@ -1,41 +1,151 @@
 import streamlit as st
-import zxcvbn as zxcvbn  # Password strength checker
+import re
+import string
 
 def check_password_strength(password):
-    result = zxcvbn.zxcvbn(password)
-    score = result['score']  # Strength score (0 to 4)
-    feedback = result['feedback']['suggestions'] if 'feedback' in result and 'suggestions' in result['feedback'] else []
+    """Calculate password strength based on length, complexity, and patterns"""
+    score = 0
+    feedback = []
+    
+    # Check length
+    if len(password) == 0:
+        return 0, ["Please enter a password"]
+    elif len(password) < 8:
+        feedback.append("Password is too short. Use at least 8 characters.")
+    elif len(password) >= 12:
+        score += 1
+    
+    # Check for lowercase
+    if any(c.islower() for c in password):
+        score += 1
+    else:
+        feedback.append("Include lowercase letters (a-z)")
+    
+    # Check for uppercase
+    if any(c.isupper() for c in password):
+        score += 1
+    else:
+        feedback.append("Include uppercase letters (A-Z)")
+    
+    # Check for numbers
+    if any(c.isdigit() for c in password):
+        score += 1
+    else:
+        feedback.append("Include numbers (0-9)")
+    
+    # Check for special characters
+    special_chars = set(string.punctuation)
+    if any(c in special_chars for c in password):
+        score += 1
+    else:
+        feedback.append("Include special characters (e.g., !@#$%)")
+    
+    # Check for common patterns
+    if re.search(r'12345|qwerty|password|admin', password.lower()):
+        score -= 1
+        feedback.append("Avoid common patterns and words")
+    
+    # Check for repeating characters
+    if re.search(r'(.)\1{2,}', password):
+        score -= 1
+        feedback.append("Avoid repeating characters (e.g., 'aaa')")
+    
+    # Normalize score to 0-4 range
+    score = max(0, min(score, 4))
+    
     return score, feedback
 
-# Streamlit App Styling
-st.markdown(
-    """
-    <style>
-        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', sans-serif; }
-        .stTextInput>div>div>input { background-color: #161b22; color: #c9d1d9; border-radius: 8px; border: 1px solid #30363d; padding: 10px; }
-        .stButton>button { background-color: #238636; color: white; border-radius: 8px; padding: 10px; font-weight: bold; border: none; }
-        .stButton>button:hover { background-color: #2ea043; }
-        .stMarkdown { color: #58a6ff; }
-        .stSubheader { color: #ffa657; }
-        .password-box { background-color: #161b22; padding: 15px; border-radius: 10px; border: 1px solid #30363d; }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# Page configuration
+st.set_page_config(page_title="Password Strength Meter", page_icon="🔒")
 
-st.title("🔒 Password Strength Meter")
-st.write("Enter a password to check its strength.")
+# Custom CSS
+st.markdown("""
+<style>
+    .main {
+        background-color: #f5f5f5;
+    }
+    .password-meter {
+        margin: 20px 0;
+        height: 10px;
+        border-radius: 5px;
+        background-color: #ddd;
+        position: relative;
+    }
+    .meter-fill {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.5s ease-in-out;
+    }
+    .very-weak { background-color: #ff4d4d; }
+    .weak { background-color: #ffa64d; }
+    .moderate { background-color: #ffff4d; }
+    .strong { background-color: #4dff4d; }
+    .very-strong { background-color: #1a8cff; }
+    .feedback-item {
+        padding: 5px 10px;
+        margin: 5px 0;
+        border-radius: 4px;
+        background-color: #f0f0f0;
+        border-left: 3px solid #ff4d4d;
+    }
+    .header-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-password = st.text_input("Enter Password", type="password")
+# Header section
+st.markdown('<div class="header-container"><h1>🔒 Password Strength Meter</h1></div>', unsafe_allow_html=True)
+st.write("Enter a password to check its security strength")
+
+# Password input
+password = st.text_input("Enter password", type="password")
 
 if password:
+    # Calculate strength
     score, feedback = check_password_strength(password)
+    
+    # Determine strength level
     strength_levels = ["Very Weak", "Weak", "Moderate", "Strong", "Very Strong"]
+    strength_class = ["very-weak", "weak", "moderate", "strong", "very-strong"]
     
-    st.subheader(f"Strength: {strength_levels[score]}")
+    # Display strength meter
+    st.markdown(f"""
+    <div class="password-meter">
+        <div class="meter-fill {strength_class[score]}" style="width: {(score + 1) * 20}%;"></div>
+    </div>
+    <h3>{strength_levels[score]}</h3>
+    """, unsafe_allow_html=True)
     
-    # Show feedback if any
+    # Display feedback
     if feedback:
-        st.write("**Suggestions:**")
+        st.subheader("Suggestions to improve:")
         for tip in feedback:
-            st.markdown(f"- {tip}", unsafe_allow_html=True)
+            st.markdown(f'<div class="feedback-item">{tip}</div>', unsafe_allow_html=True)
+    
+    # Password info
+    col1, col2 = st.columns(2)
+    with col1:
+        st.info(f"Password length: {len(password)} characters")
+    with col2:
+        if score >= 3:
+            st.success("This password meets basic security standards.")
+        else:
+            st.warning("This password doesn't meet recommended security standards.")
+
+# Password tips
+with st.expander("Password Security Tips"):
+    st.markdown("""
+    * Use at least 12 characters
+    * Mix uppercase and lowercase letters
+    * Include numbers and special characters
+    * Avoid common patterns and dictionary words
+    * Use a unique password for each account
+    * Consider using a password manager
+    """)
+
+# Footer
+st.markdown("---")
+st.markdown("This password strength checker evaluates your password locally and securely.")
