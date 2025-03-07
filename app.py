@@ -58,6 +58,7 @@ def check_password_strength(password):
 # Page configuration
 st.set_page_config(page_title="Password Strength Meter", page_icon="🔒")
 
+
 # Custom CSS
 st.markdown("""
 <style>
@@ -99,7 +100,10 @@ st.markdown("""
 # Header section
 st.markdown('<div class="header-container"><h1>🔒 Password Strength Meter</h1></div>', unsafe_allow_html=True)
 st.write("Enter a password to check its security strength")
-
+st.markdown(
+    "<div style='color: blue; font-size: 20px;'>Created by Hassan Ali Junejo</div>",
+    unsafe_allow_html=True
+)
 # Password input
 password = st.text_input("Enter password", type="password")
 
